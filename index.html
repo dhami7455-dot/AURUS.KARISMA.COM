@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scroll Video</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; }
+
+  #scrubSection {
+    position: relative;
+    height: 500vh;
+  }
+
+  #stickyWrap {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+  }
+
+  video {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div id="scrubSection">
+  <div id="stickyWrap">
+    <video id="scrubVideo" preload="auto" muted playsinline>
+      <source src="https://files.catbox.moe/i5mo7p.mp4" type="video/mp4">
+    </video>
+  </div>
+</div>
+
+<script>
+  const video = document.getElementById('scrubVideo');
+  const section = document.getElementById('scrubSection');
+
+  video.addEventListener('loadedmetadata', () => {
+    window.addEventListener('scroll', () => {
+      const rect = section.getBoundingClientRect();
+      const totalScrollable = rect.height - window.innerHeight;
+      const scrolled = -rect.top;
+      let progress = totalScrollable > 0 ? scrolled / totalScrollable : 0;
+      progress = Math.min(Math.max(progress, 0), 1);
+      video.currentTime = progress * video.duration;
+    }, { passive: true });
+  });
+</script>
+
+</body>
+</html>
+
