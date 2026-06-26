@@ -27,7 +27,7 @@
 <script>
 (function () {
   const FRAME_COUNT = 100;
-  const FRAME_PATH = (i) => `frames/frame_${String(i + 1).padStart(4, '0')}.jpg`;
+  const FRAME_PATH = (i) => `frame_${String(i + 1).padStart(4, '0')}.jpg`;
 
   const canvas = document.getElementById('scrubCanvas');
   const ctx = canvas.getContext('2d');
