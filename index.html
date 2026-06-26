@@ -3,61 +3,91 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scroll Video</title>
+<title>Scroll Scrub</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0a0a0a; }
-
-  #scrubSection {
-    position: relative;
-    height: 500vh;
-  }
-
+  #scrubSection { position: relative; height: 400vh; }
   #stickyWrap {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    width: 100%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #000;
+    position: sticky; top: 0; height: 100vh; width: 100%;
+    overflow: hidden; display: flex; align-items: center;
+    justify-content: center; background: #000;
   }
-
-  video {
-    max-width: 100%;
-    max-height: 100%;
-    display: block;
-  }
+  #scrubCanvas { max-width: 100%; max-height: 100%; display: block; }
+  #loader { position: absolute; color: #fff; font-size: 14px; opacity: 0.7; z-index: 10; }
 </style>
 </head>
 <body>
-
 <div id="scrubSection">
   <div id="stickyWrap">
-    <video id="scrubVideo" preload="auto" muted playsinline>
-      <source src="https://files.catbox.moe/i5mo7p.mp4" type="video/mp4">
-    </video>
+    <canvas id="scrubCanvas"></canvas>
+    <div id="loader">جاري التحميل... 0%</div>
   </div>
 </div>
-
 <script>
-  const video = document.getElementById('scrubVideo');
+(function () {
+  const FRAME_COUNT = 100;
+  const FRAME_PATH = (i) => `frames/frame_${String(i + 1).padStart(4, '0')}.jpg`;
+
+  const canvas = document.getElementById('scrubCanvas');
+  const ctx = canvas.getContext('2d');
+  const loader = document.getElementById('loader');
   const section = document.getElementById('scrubSection');
+  const images = new Array(FRAME_COUNT);
+  let loadedCount = 0, currentFrame = 0, ready = false;
 
-  video.addEventListener('loadedmetadata', () => {
-    window.addEventListener('scroll', () => {
-      const rect = section.getBoundingClientRect();
-      const totalScrollable = rect.height - window.innerHeight;
-      const scrolled = -rect.top;
-      let progress = totalScrollable > 0 ? scrolled / totalScrollable : 0;
-      progress = Math.min(Math.max(progress, 0), 1);
-      video.currentTime = progress * video.duration;
-    }, { passive: true });
-  });
+  function loadFrame(i) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        loadedCount++;
+        loader.textContent = `جاري التحميل... ${Math.round((loadedCount / FRAME_COUNT) * 100)}%`;
+        resolve();
+      };
+      img.onerror = resolve;
+      img.src = FRAME_PATH(i);
+      images[i] = img;
+    });
+  }
+
+  async function loadAll() {
+    const priorityCount = Math.min(15, FRAME_COUNT);
+    for (let i = 0; i < priorityCount; i++) await loadFrame(i);
+    ready = true;
+    loader.style.display = 'none';
+    render(0);
+    for (let i = priorityCount; i < FRAME_COUNT; i++) loadFrame(i);
+  }
+
+  function render(index) {
+    const img = images[index];
+    if (!img || !img.complete || img.naturalWidth === 0) return;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+  }
+
+  function updateFrameOnScroll() {
+    if (!ready) return;
+    const rect = section.getBoundingClientRect();
+    const totalScrollable = rect.height - window.innerHeight;
+    const scrolled = -rect.top;
+    let progress = totalScrollable > 0 ? scrolled / totalScrollable : 0;
+    progress = Math.min(Math.max(progress, 0), 1);
+    const frameIndex = Math.min(FRAME_COUNT - 1, Math.floor(progress * FRAME_COUNT));
+    if (frameIndex !== currentFrame) { currentFrame = frameIndex; render(currentFrame); }
+  }
+
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(() => { updateFrameOnScroll(); ticking = false; });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  loadAll();
+})();
 </script>
-
 </body>
 </html>
-
